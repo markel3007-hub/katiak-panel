@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katiak · Panel de Planta</title>
+<style>
+  :root{
+    --bg:#fafafa; --surface:#ffffff; --surface-2:#f4f4f5;
+    --border:#eaeaea; --border-2:#e2e2e2;
+    --text:#18181b; --muted:#71717a; --faint:#a1a1aa;
+    --accent:#5a9e0a; --accent-strong:#4e8606; --accent-weak:#f1f7e7;
+    --red:#dc2626; --red-weak:#fef2f2; --amber:#b45309; --amber-weak:#fef6ec;
+    --green:#5a9e0a;
+    --r:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  svg.ic{width:18px;height:18px;flex:none}
+  /* ---------- topbar ---------- */
+  header.top{background:var(--surface);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;gap:18px;padding:0 24px;position:sticky;top:0;z-index:30}
+  .logo-chip{background:#18181b;border-radius:7px;padding:7px 10px;display:flex;align-items:center;cursor:pointer}
+  .logo-chip img{height:18px;display:block}
+  .seg{display:inline-flex;background:var(--surface-2);border-radius:8px;padding:3px}
+  .seg button{border:0;background:transparent;color:var(--muted);font-weight:500;font-size:13px;padding:6px 13px;border-radius:6px;cursor:pointer;font-family:inherit;transition:.12s}
+  .seg button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .seg.accent button.active{color:var(--accent-strong)}
+  .spacer{flex:1}
+  .topdate{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.3}
+  .topdate b{color:var(--text);display:block;font-weight:600}
+  .demo{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:3px 9px}
+  /* ---------- layout ---------- */
+  main{max-width:1180px;margin:0 auto;padding:28px 24px 72px}
+  .crumb{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);margin-bottom:14px}
+  .crumb a{color:var(--muted);cursor:pointer;text-decoration:none}
+  .crumb a:hover{color:var(--text)}
+  .crumb .sep{color:var(--faint)}
+  h1.page{font-size:21px;font-weight:600;letter-spacing:-.3px}
+  .lead{color:var(--muted);font-size:13.5px;margin:3px 0 24px;max-width:680px}
+  .eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .eyebrow .live{display:inline-flex;align-items:center;gap:5px;color:var(--accent-strong);letter-spacing:.4px}
+  .eyebrow .live i{width:6px;height:6px;border-radius:99px;background:var(--accent)}
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:grid;overflow:hidden}
+  .kpi-strip.k5{grid-template-columns:repeat(5,1fr)}
+  .kpi-strip.k4{grid-template-columns:repeat(4,1fr)}
+  .kpi{padding:18px 20px;border-left:1px solid var(--border)}
+  .kpi:first-child{border-left:0}
+  .kpi.north{box-shadow:inset 3px 0 0 var(--accent)}
+  .kpi .k-label{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.2px}
+  .kpi .k-val{font-size:28px;font-weight:600;letter-spacing:-1px;margin-top:7px;line-height:1}
+  .kpi .k-val small{font-size:14px;color:var(--faint);font-weight:500;letter-spacing:0}
+  .kpi .k-val.txt{font-size:18px;letter-spacing:-.2px}
+  .kpi .k-delta{font-size:12px;margin-top:9px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .kpi .k-delta .d{font-weight:600;display:inline-flex;align-items:center;gap:2px}
+  .d.up{color:var(--accent-strong)} .d.down{color:var(--red)} .d.flat{color:var(--muted)}
+  /* ---------- panels ---------- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+  .p-head{height:46px;padding:0 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .p-head h3{font-size:13.5px;font-weight:600}
+  .p-head .meta{font-size:12px;color:var(--faint);margin-left:auto;font-weight:500}
+  .grid{display:grid;gap:18px}
+  .g-2-1{grid-template-columns:1.7fr 1fr}
+  .g-2{grid-template-columns:1fr 1fr}
+  .mt18{margin-top:18px}.mt28{margin-top:28px}.mb18{margin-bottom:18px}
+  /* ---------- chart ---------- */
+  .chart{padding:16px 18px 8px}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);padding:0 18px 16px}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:14px;height:2.5px;border-radius:99px;display:inline-block}
+  .legend i.dash{height:0;border-top:2px dashed var(--faint);width:16px}
+  /* hbars */
+  .hbars{padding:14px 18px}
+  .hbar{display:flex;align-items:center;gap:14px;padding:6px 0}
+  .hbar .hl{min-width:160px;font-size:13px;color:var(--text)}
+  .hbar .ht{flex:1;height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .hbar .ht i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .hbar .hv{min-width:52px;text-align:right;font-size:13px;font-weight:600;color:var(--muted)}
+  /* ---------- status list ---------- */
+  .slist{padding:6px 0}
+  .srow{display:flex;align-items:center;gap:11px;padding:10px 18px;border-top:1px solid var(--border)}
+  .srow:first-child{border-top:0}
+  .srow:hover{background:var(--surface-2);cursor:pointer}
+  .dot{width:7px;height:7px;border-radius:99px;flex:none}
+  .dot.op{background:var(--green)} .dot.stop{background:var(--red)} .dot.maint{background:var(--amber)}
+  .srow .sname{font-size:13px;font-weight:500;flex:1}
+  .srow .sstate{font-size:12px;color:var(--muted)}
+  /* status label */
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:500}
+  .st .dot{width:6px;height:6px}
+  /* ---------- area tiles ---------- */
+  .areas{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  .area{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:.13s;display:flex;flex-direction:column;gap:10px;min-height:128px}
+  .area:hover{border-color:var(--border-2);background:#fff;transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.05)}
+  .area .ai{color:var(--muted)}
+  .area .at{font-size:13.5px;font-weight:600;margin-top:2px}
+  .area .am{font-size:12px;color:var(--muted);margin-top:auto}
+  .area .am b{color:var(--text);font-weight:600}
+  .area .chev{color:var(--faint);font-size:14px}
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--faint);font-weight:600;padding:11px 18px;border-bottom:1px solid var(--border)}
+  tbody td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13.5px}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--surface-2)}
+  th.r,td.r{text-align:right}
+  .freq{display:inline-flex;align-items:center;gap:9px}
+  .freq .ft{width:64px;height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .freq .ft i{display:block;height:100%;background:var(--faint)}
+  /* avatars (neutros) */
+  .av{width:24px;height:24px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex:none}
+  .person{display:inline-flex;align-items:center;gap:8px}
+  .avstack{display:inline-flex}.avstack .av{margin-left:-7px}.avstack .av:first-child{margin-left:0}
+  /* ---------- progress meter ---------- */
+  .meter{display:flex;align-items:baseline;gap:8px}
+  .meter b{font-size:30px;font-weight:600;letter-spacing:-1px}
+  .bar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:12px}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:2px;padding:8px 10px;border-bottom:1px solid var(--border)}
+  .tabs button{border:0;background:transparent;color:var(--muted);font-weight:500;font-size:13px;padding:8px 13px;border-radius:7px;cursor:pointer;font-family:inherit}
+  .tabs button.active{background:var(--surface-2);color:var(--text)}
+  .search{padding:14px 18px;border-bottom:1px solid var(--border)}
+  .search input,.fld input,.fld select,.fld textarea{width:100%;padding:10px 12px;border:1px solid var(--border-2);border-radius:8px;font-size:13.5px;background:var(--surface);font-family:inherit;color:var(--text)}
+  .search input:focus,.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--accent)}
+  /* KB */
+  .kb{padding:18px;border-bottom:1px solid var(--border)}
+  .kb:last-child{border-bottom:0}
+  .kb .kq{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .kb-flow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .kb-flow .step{background:var(--surface);padding:13px 14px}
+  .kb-flow .h{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .kb-flow .h .pip{width:6px;height:6px;border-radius:99px}
+  .step.problem .pip{background:var(--red)}.step.cause .pip{background:var(--amber)}.step.sol .pip{background:var(--green)}
+  .kb-flow .step p{font-size:13px;color:var(--text)}
+  .kb-meta{margin-top:12px;font-size:12px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}
+  .mkb-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer}
+  .mkb-head:hover{background:var(--surface-2)}
+  .mkb-head .cnt{margin-left:auto;font-size:12px;color:var(--faint)}
+  /* meetings */
+  .meet{display:flex;gap:14px;padding:15px 18px;border-bottom:1px solid var(--border);cursor:pointer}
+  .meet:last-child{border-bottom:0}.meet:hover{background:var(--surface-2)}
+  .mdate{min-width:46px;text-align:center}
+  .mdate .d{font-size:18px;font-weight:600;line-height:1}
+  .mdate .m{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--faint)}
+  .meet .mb h4{font-size:13.5px;font-weight:600}
+  .meet .mb .mw{font-size:12px;color:var(--muted);margin:3px 0 6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .meet .mb .ms{font-size:13px;color:var(--text)}
+  .meet .go{align-self:center;color:var(--faint);font-size:16px;margin-left:auto}
+  .acts{display:flex;flex-direction:column;gap:7px;padding:14px 18px}
+  .act{display:flex;align-items:center;gap:10px;font-size:13px;padding:9px 12px;border:1px solid var(--border);border-radius:8px}
+  .act .who{margin-left:auto;color:var(--muted);font-size:12px}
+  .chk{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border-2);flex:none}
+  .chk.done{background:var(--accent);border-color:var(--accent);position:relative}
+  .chk.done::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .att{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:999px;padding:4px 12px 4px 4px;font-size:12.5px}
+  .tline{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+  .tline:last-child{border-bottom:0}
+  .tline .tw .nm{font-size:12.5px;font-weight:600;margin-bottom:3px}
+  .tline .tw .nm small{color:var(--faint);font-weight:500;margin-left:8px}
+  .tline .tw p{font-size:13.5px}
+  /* gantt */
+  .gantt{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--surface-2)}
+  .gantt i{height:100%}
+  .g-run{background:var(--accent)}.g-slow{background:#d4d4d8}.g-stop{background:var(--red)}
+  .grow{display:flex;align-items:center;gap:14px;padding:7px 0}
+  .grow .gl{min-width:160px;font-size:13px}
+  .grow .gantt{flex:1}
+  /* employee app */
+  .app-wrap{display:flex;justify-content:center;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .phone{width:320px;background:#18181b;border-radius:30px;padding:9px;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+  .phone .screen{background:var(--bg);border-radius:22px;overflow:hidden;min-height:600px;display:flex;flex-direction:column}
+  .app-top{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 15px;display:flex;align-items:center;gap:9px}
+  .app-top .u{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .app-body{padding:16px;flex:1;display:flex;flex-direction:column;gap:14px}
+  .app-h{font-size:16px;font-weight:600}
+  .app-sub{font-size:12px;color:var(--muted);margin-top:-9px}
+  .fld label{font-size:12px;font-weight:600;display:block;margin-bottom:6px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{border:1px solid var(--border-2);background:var(--surface);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:500;cursor:pointer}
+  .chip.sel{border-color:var(--accent);background:var(--accent-weak);color:var(--accent-strong)}
+  .chip.sel.red{border-color:var(--red);background:var(--red-weak);color:var(--red)}
+  .big-btn{margin-top:auto;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+  .pin{background:#18181b;color:#fff;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center}
+  .pin .logo-chip{background:rgba(255,255,255,.07)}
+  .pdots{display:flex;gap:11px}.pdots i{width:12px;height:12px;border-radius:99px;background:rgba(255,255,255,.18)}.pdots i.on{background:var(--accent)}
+  .ppad{display:grid;grid-template-columns:repeat(3,64px);gap:12px}
+  .ppad button{width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:21px;cursor:pointer;font-family:inherit}
+  .note{max-width:330px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+  .note h4{font-size:13px;color:var(--text);margin-bottom:10px}
+  .note ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:8px}
+  .note li{font-size:12.5px}
+  .note b{color:var(--text);font-weight:600}
+  .ghost-btn{margin-top:14px;width:100%;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;padding:11px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text)}
+  .hide{display:none}
+  footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:var(--faint);font-size:12px}
+  @media(max-width:980px){.g-2-1,.g-2{grid-template-columns:1fr}.areas{grid-template-columns:repeat(2,1fr)}.kpi-strip.k5,.kpi-strip.k4{grid-template-columns:repeat(2,1fr)}.kpi{border-top:1px solid var(--border)}.kb-flow{grid-template-columns:1fr}}
+  @media(max-width:680px){
+    header.top{height:auto;flex-wrap:wrap;gap:9px;padding:10px 14px}
+    header.top .spacer{display:none}
+    .demo,.topdate{display:none}
+    .seg button{padding:7px 14px}
+    main{padding:20px 16px 60px}
+    .panel{overflow-x:auto}
+    table{min-width:540px}
+    .kpi-strip.k5,.kpi-strip.k4{grid-template-columns:1fr 1fr}
+    .areas{grid-template-columns:1fr 1fr}
+    h1.page{font-size:19px}
+    .app-wrap{gap:18px}
+  }
+  @media(max-width:420px){.areas{grid-template-columns:1fr}.kpi-strip.k5,.kpi-strip.k4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo-chip" onclick="go('home')"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN0AAABuCAMAAACURObzAAADKGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4yLWMwMDAgNzkuMWI2NWE3OWI0LCAyMDIyLzA2LzEzLTIyOjAxOjAxICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuNSAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo1MUU3MEFFNTdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo1MUU3MEFFNjdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkY3NERGOUY2N0RCNzExRUQ4Njc4RkE5MEYzQjk3RDlCIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjUxRTcwQUU0N0RFRDExRUQ4Njc4RkE5MEYzQjk3RDlCIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+UeVFuwAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKOUExURUdwTP///////////////////////////2GlCGGlCP///////+Xw2f///////////////////2GlCP///////////////2GlCGGlCGGlCGGlCGGlCP///2GlCGGlCP///2GlCGGlCP///////////////////////2GlCGGlCP///2GlCP///2GlCP///////////////////////////////////////////////////////////2GlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCGGlCGGlCGGlCGGlCP///////////2GlCP///////////////////////2GlCGGlCGGlCGGlCP///////////////2GlCGGlCP///2GlCGGlCP///////////////////////////////2GlCP///////2GlCP///////////2GlCP///2GlCGGlCP///////2GlCP///2GlCP///////////2GlCP///////////2GlCGGlCP///////////////////////////////////2GlCP///2GlCGGlCGGlCGGlCP///2GlCP///2GlCP///2GlCGGlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCP///////2GlCGGlCGGlCGGlCP///2GlCP///////////////////////////////////////////////2GlCP///////////////////////2GlCGGlCP///////////////2GlCP///////////////////////////////////2GlCGGlCP///////////2GlCGGlCP///////2GlCP///zA7djkAAADYdFJOUwCAELCgIFDQwHBwYAHA6o78DwjECl4T/fgUDaURo+P7FjUnDMwV9wMG7g53vtZYn/793Iu1+k0qFzwGJHr7xTNoiNJWu4ZOlCi6PAn1hOD+3vAC7Ojl84O32H14NJOBXr2v9e6pzjAaLGXmF0ijypkZueDK0Mmlc0fCItZbQHVU4jVB8iGY1HadYqgI8aebA9znfrzUxgWCnle02TiWUjGQEGz6lR5lSSePZOuI86uyIkqit/hDZi4shu/Re2+tIGY72nHHOVG2HDnDBIw4gQqsTGpVs0tGWncoJykAAAXmSURBVHja7dz5Q9NW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" alt="Katiak"></div>
+  <div class="seg accent">
+    <button id="ta-dash" class="active" onclick="setFace('dash')">Dashboard</button>
+    <button id="ta-app" onclick="setFace('app')">App empleado</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="demo">Mockup · datos demo</span>
+  <div class="seg" id="period-ctrl">
+    <button id="pw" class="active" onclick="setPeriod('week')">Semana</button>
+    <button id="pm" onclick="setPeriod('month')">Mes</button>
+  </div>
+  <div class="topdate"><b id="td-main">25–31 May 2026</b><span id="td-sub">Actualizado 08:40</span></div>
+</header>
+
+<main id="dash-main">
+  <!-- HOME -->
+  <section id="view-home">
+    <h1 class="page">Planta</h1>
+    <p class="lead">Estado de fabricación, incidencias y decisiones de un vistazo.</p>
+
+    <div class="eyebrow">Indicadores <span style="color:var(--faint)">· comparados con la media semestral</span></div>
+    <div class="kpi-strip k5 mb18" id="kpi-home"></div>
+
+    <div class="grid g-2-1 mb18">
+      <div class="panel">
+        <div class="p-head"><h3>Tiempo perdido y paradas</h3><span class="meta">últimas 8 semanas</span></div>
+        <div class="chart" id="line-chart"></div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Tiempo perdido (h)</span>
+          <span><i style="background:var(--faint)"></i>Nº paradas</span>
+          <span><i class="dash"></i>Media semestral</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h3>Máquinas</h3><span class="meta"><span class="eyebrow" style="margin:0"><span class="live"><i></i>EN VIVO</span></span></span></div>
+        <div class="slist" id="machine-status"></div>
+      </div>
+    </div>
+
+    <div class="eyebrow">Áreas</div>
+    <div class="areas" id="areas"></div>
+  </section>
+
+  <!-- MÁQUINAS -->
+  <section id="view-maquinas" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><span>Máquinas</span></div>
+    <h1 class="page">Estado de máquinas</h1>
+    <p class="lead">Vista por activo: cómo está cada equipo, su disponibilidad y su responsable.</p>
+    <div class="grid g-2 mb18">
+      <div class="panel">
+        <div class="p-head"><h3>Disponibilidad</h3><span class="meta" id="maq-period">esta semana</span></div>
+        <div style="padding:18px">
+          <div class="meter"><b id="maq-disp">94,2%</b><span style="color:var(--muted);font-size:13px">tiempo operativo</span></div>
+          <div class="bar"><i id="maq-disp-bar" style="width:94%"></i></div>
+          <div style="display:flex;gap:22px;margin-top:14px;font-size:12.5px;color:var(--muted)">
+            <span class="st"><span class="dot op"></span>Produciendo <b style="color:var(--text);margin-left:4px" id="mt-run">94%</b></span>
+            <span class="st"><span class="dot stop"></span>Parada <b style="color:var(--text);margin-left:4px" id="mt-stop">4%</b></span>
+            <span class="st"><span class="dot maint"></span>Mant. <b style="color:var(--text);margin-left:4px" id="mt-maint">2%</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="p-head"><h3>Tiempo perdido por máquina</h3><span class="meta" id="maq-lost-sub">esta semana</span></div>
+        <div class="hbars" id="maq-bars"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="p-head"><h3>Equipos</h3><span class="meta">7 máquinas · clic para ver detalle</span></div>
+      <table><thead><tr><th>Máquina</th><th>Estado</th><th class="r">Paradas</th><th class="r">Incid.</th><th class="r">T. perdido</th><th>Responsable</th></tr></thead><tbody id="maq-body"></tbody></table>
+    </div>
+  </section>
+
+  <!-- MÁQUINA DETALLE -->
+  <section id="view-maquina" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><a onclick="go('maquinas')">Máquinas</a><span class="sep">/</span><span id="md-crumb">Máquina</span></div>
+    <div id="maquina-detail"></div>
+  </section>
+
+  <!-- ERRORES -->
+  <section id="view-errores" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><span>Errores</span></div>
+    <h1 class="page">Errores recurrentes</h1>
+    <p class="lead">Vista por problema: qué falla más, por qué y quién estaba en el turno.</p>
+    <div class="kpi-strip k4 mb18" id="err-kpis"></div>
+    <div class="panel mb18">
+      <div class="p-head"><h3>Errores por frecuencia</h3><span class="meta">top 5</span></div>
+      <div class="hbars" id="err-bars"></div>
+    </div>
+    <div class="panel">
+      <div class="p-head"><h3>Incidencias del periodo</h3><span class="meta" id="err-count"></span></div>
+      <table><thead><tr><th>Error</th><th>Máquina</th><th>Frecuencia</th><th>Turno presente</th><th>Estado</th></tr></thead><tbody id="err-body"></tbody></table>
+    </div>
+  </section>
+
+  <!-- PROCESOS -->
+  <section id="view-procesos" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><span>Procesos</span></div>
+    <h1 class="page">Procesos realizados</h1>
+    <p class="lead">Vista por output: qué hemos producido y si cumplimos plazos.</p>
+    <div class="kpi-strip k4 mb18" id="proc-kpis"></div>
+    <div class="panel mb18">
+      <div class="p-head"><h3>Producción por familia</h3><span class="meta" id="proc-fam-sub">esta semana</span></div>
+      <div class="hbars" id="proc-bars"></div>
+    </div>
+    <div class="panel">
+      <div class="p-head"><h3>Órdenes de fabricación</h3><span class="meta" id="proc-count"></span></div>
+      <table><thead><tr><th>Orden</th><th>Producto</th><th class="r">Cantidad</th><th>Responsable</th><th>Estado</th></tr></thead><tbody id="proc-body"></tbody></table>
+    </div>
+  </section>
+
+  <!-- REUNIONES -->
+  <section id="view-reuniones" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><span>Reuniones</span></div>
+    <h1 class="page">Reuniones y acciones</h1>
+    <p class="lead">Cada reunión con sus participantes y acciones. Clic en una para leer el acta completa.</p>
+    <div class="grid g-2-1">
+      <div class="panel">
+        <div class="p-head"><h3>Últimas reuniones</h3><span class="meta" id="meet-count"></span></div>
+        <div id="meet-list"></div>
+      </div>
+      <div class="panel" style="height:fit-content">
+        <div class="p-head"><h3>Acciones pendientes</h3></div>
+        <div class="acts" id="pending-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REUNIÓN DETALLE -->
+  <section id="view-reunion" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><a onclick="go('reuniones')">Reuniones</a><span class="sep">/</span><span id="rd-crumb">Acta</span></div>
+    <div id="reunion-detail"></div>
+  </section>
+
+  <!-- CONOCIMIENTO -->
+  <section id="view-conocimiento" class="hide">
+    <div class="crumb"><a onclick="go('home')">Planta</a><span class="sep">/</span><span>Base de conocimiento</span></div>
+    <h1 class="page">Base de conocimiento</h1>
+    <p class="lead">La memoria de la fábrica. Cada error resuelto queda como problema → causa → solución, buscable para siempre.</p>
+    <div class="panel">
+      <div class="tabs">
+        <button id="kbtab-week" class="active" onclick="setKBTab('week')">Aprendizajes de la semana</button>
+        <button id="kbtab-machine" onclick="setKBTab('machine')">Por máquina</button>
+      </div>
+      <div id="kb-week-pane">
+        <div class="search"><input type="text" placeholder="Buscar: galvanizado, soldadura, matriz…" oninput="filterKB(this.value)"></div>
+        <div id="kb-list"></div>
+      </div>
+      <div id="kb-machine-pane" class="hide"></div>
+    </div>
+  </section>
+</main>
+
+<!-- APP EMPLEADO -->
+<main id="app-main" class="hide">
+  <h1 class="page">App de empleado · captura en planta</h1>
+  <p class="lead">Así registra un operario una incidencia: se identifica con su PIN y rellena un formulario guiado en menos de 20 segundos. Todo entra directo al dashboard.</p>
+  <div class="app-wrap">
+    <div class="phone"><div class="screen pin">
+      <div class="logo-chip"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN0AAABuCAMAAACURObzAAADKGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4yLWMwMDAgNzkuMWI2NWE3OWI0LCAyMDIyLzA2LzEzLTIyOjAxOjAxICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuNSAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo1MUU3MEFFNTdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo1MUU3MEFFNjdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkY3NERGOUY2N0RCNzExRUQ4Njc4RkE5MEYzQjk3RDlCIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjUxRTcwQUU0N0RFRDExRUQ4Njc4RkE5MEYzQjk3RDlCIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+UeVFuwAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKOUExURUdwTP///////////////////////////2GlCGGlCP///////+Xw2f///////////////////2GlCP///////////////2GlCGGlCGGlCGGlCGGlCP///2GlCGGlCP///2GlCGGlCP///////////////////////2GlCGGlCP///2GlCP///2GlCP///////////////////////////////////////////////////////////2GlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCGGlCGGlCGGlCGGlCP///////////2GlCP///////////////////////2GlCGGlCGGlCGGlCP///////////////2GlCGGlCP///2GlCGGlCP///////////////////////////////2GlCP///////2GlCP///////////2GlCP///2GlCGGlCP///////2GlCP///2GlCP///////////2GlCP///////////2GlCGGlCP///////////////////////////////////2GlCP///2GlCGGlCGGlCGGlCP///2GlCP///2GlCP///2GlCGGlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCP///////2GlCGGlCGGlCGGlCP///2GlCP///////////////////////////////////////////////2GlCP///////////////////////2GlCGGlCP///////////////2GlCP///////////////////////////////////2GlCGGlCP///////////2GlCGGlCP///////2GlCP///zA7djkAAADYdFJOUwCAELCgIFDQwHBwYAHA6o78DwjECl4T/fgUDaURo+P7FjUnDMwV9wMG7g53vtZYn/793Iu1+k0qFzwGJHr7xTNoiNJWu4ZOlCi6PAn1hOD+3vAC7Ojl84O32H14NJOBXr2v9e6pzjAaLGXmF0ijypkZueDK0Mmlc0fCItZbQHVU4jVB8iGY1HadYqgI8aebA9znfrzUxgWCnle02TiWUjGQEGz6lR5lSSePZOuI86uyIkqit/hDZi4shu/Re2+tIGY72nHHOVG2HDnDBIw4gQqsTGpVs0tGWncoJykAAAXmSURBVHja7dz5Q9NW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" alt="Katiak" style="height:20px"></div>
+      <div style="font-size:14px;font-weight:600">Identifícate</div>
+      <div style="font-size:12px;color:#a1a1aa;margin-top:-10px">PIN de 4 dígitos</div>
+      <div class="pdots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="ppad"><button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>9</button><button style="visibility:hidden"></button><button>0</button><button>⌫</button></div>
+      <div style="font-size:11.5px;color:#71717a">Sin contraseñas. Rápido, también con guantes.</div>
+    </div></div>
+    <div class="phone"><div class="screen">
+      <div class="app-top"><div class="logo-chip"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN0AAABuCAMAAACURObzAAADKGlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4yLWMwMDAgNzkuMWI2NWE3OWI0LCAyMDIyLzA2LzEzLTIyOjAxOjAxICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuNSAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo1MUU3MEFFNTdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo1MUU3MEFFNjdERUQxMUVEODY3OEZBOTBGM0I5N0Q5QiI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkY3NERGOUY2N0RCNzExRUQ4Njc4RkE5MEYzQjk3RDlCIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjUxRTcwQUU0N0RFRDExRUQ4Njc4RkE5MEYzQjk3RDlCIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+UeVFuwAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKOUExURUdwTP///////////////////////////2GlCGGlCP///////+Xw2f///////////////////2GlCP///////////////2GlCGGlCGGlCGGlCGGlCP///2GlCGGlCP///2GlCGGlCP///////////////////////2GlCGGlCP///2GlCP///2GlCP///////////////////////////////////////////////////////////2GlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCGGlCGGlCGGlCGGlCP///////////2GlCP///////////////////////2GlCGGlCGGlCGGlCP///////////////2GlCGGlCP///2GlCGGlCP///////////////////////////////2GlCP///////2GlCP///////////2GlCP///2GlCGGlCP///////2GlCP///2GlCP///////////2GlCP///////////2GlCGGlCP///////////////////////////////////2GlCP///2GlCGGlCGGlCGGlCP///2GlCP///2GlCP///2GlCGGlCGGlCP///2GlCGGlCGGlCGGlCP///2GlCGGlCGGlCP///////2GlCGGlCGGlCGGlCP///2GlCP///////////////////////////////////////////////2GlCP///////////////////////2GlCGGlCP///////////////2GlCP///////////////////////////////////2GlCGGlCP///////////2GlCGGlCP///////2GlCP///zA7djkAAADYdFJOUwCAELCgIFDQwHBwYAHA6o78DwjECl4T/fgUDaURo+P7FjUnDMwV9wMG7g53vtZYn/793Iu1+k0qFzwGJHr7xTNoiNJWu4ZOlCi6PAn1hOD+3vAC7Ojl84O32H14NJOBXr2v9e6pzjAaLGXmF0ijypkZueDK0Mmlc0fCItZbQHVU4jVB8iGY1HadYqgI8aebA9znfrzUxgWCnle02TiWUjGQEGz6lR5lSSePZOuI86uyIkqit/hDZi4shu/Re2+tIGY72nHHOVG2HDnDBIw4gQqsTGpVs0tGWncoJykAAAXmSURBVHja7dz5Q9NW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" alt="K" style="height:15px"></div><div class="u"><span class="av">IB</span>Iker B.</div></div>
+      <div class="app-body">
+        <div><div class="app-h">Registrar incidencia</div><div class="app-sub">Turno tarde · 31 May 16:20</div></div>
+        <div class="fld"><label>Máquina</label><select><option>Soldadora eslabón L2</option><option>Soldadora eslabón L1</option><option>Línea galvanizado</option><option>Conformadora</option></select></div>
+        <div class="fld"><label>¿Qué ha pasado?</label><div class="chips"><div class="chip sel red">Soldadura defectuosa</div><div class="chip">Atasco</div><div class="chip">Parada</div><div class="chip">Otro</div></div></div>
+        <div class="fld"><label>¿Sigue parada?</label><div class="chips"><div class="chip sel">No, ya produce</div><div class="chip red">Sí, parada</div></div></div>
+        <div class="fld"><label>Nota (opcional)</label><textarea rows="2">Cambiados electrodos, ya va fino</textarea></div>
+        <button class="big-btn">Registrar</button>
+      </div>
+    </div></div>
+    <div class="note">
+      <h4>Cómo cierra el bucle</h4>
+      <ul>
+        <li><b>Operario</b>: PIN + formulario guiado (esta pantalla).</li>
+        <li><b>Quien lleva reuniones</b>: login real + formulario de acta.</li>
+        <li>Todo entra en una <b>única base de datos</b> → el dashboard se actualiza solo.</li>
+        <li>La estructura la garantiza la <b>interfaz</b>, no la disciplina de cada uno.</li>
+        <li>Se registra <b>quién</b> para trazabilidad, nunca para culpar.</li>
+      </ul>
+      <button class="ghost-btn" onclick="setFace('dash')">← Volver al dashboard</button>
+    </div>
+  </div>
+</main>
+
+<footer>Mockup de propuesta · Panel + app de captura para Katiak · Datos ficticios · Markel, mayo 2026</footer>
+
+<script>
+/* ===== iconos línea ===== */
+const ICONS={
+  machines:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>',
+  errors:'<path d="M12 3.5 21 20H3z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
+  proc:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/><path d="M12 11v10"/>',
+  meet:'<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3 3 0 0 1 0 6"/><path d="M20.5 19a5.5 5.5 0 0 0-3-4.9"/>',
+  kb:'<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5A1.5 1.5 0 0 1 20 20.5z"/>'
+};
+function icon(n){return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;}
+
+/* ===== personas (avatares neutros) ===== */
+const PEOPLE={
+  jon:{n:"Jon Aldekoa",i:"JA"},iker:{n:"Iker Bilbao",i:"IB"},nerea:{n:"Nerea Goikoetxea",i:"NG"},
+  aitor:{n:"Aitor Mendizabal",i:"AM"},unai:{n:"Unai Etxebarria",i:"UE"},mikel:{n:"Mikel Larrañaga",i:"ML"},
+  gorka:{n:"Gorka Uriarte",i:"GU"},javier:{n:"Javier Maguregui",i:"JM"},isaac:{n:"Isaac Mardaras",i:"IM"}
+};
+function av(p){return `<span class="av" title="${PEOPLE[p].n}">${PEOPLE[p].i}</span>`;}
+function person(p){return `<span class="person">${av(p)}${PEOPLE[p].n}</span>`;}
+function first(p){return PEOPLE[p].n.split(' ')[0];}
+
+/* ===== datos ===== */
+const MACHINES=[
+  {id:"l1",n:"Soldadora eslabón L1",resp:"jon",turno:"Mañana",week:{st:"op",stt:"Operativa · 4 h 20 m",stops:1,inc:1,lost:1.5,prodToday:620,g:[["run",92],["slow",8]]},month:{stops:4,inc:5,lost:7.0},err30:[{e:"Soldadura sin penetración",f:3,st:"done"},{e:"Salpicadura excesiva",f:1,st:"done"}]},
+  {id:"l2",n:"Soldadora eslabón L2",resp:"iker",turno:"Tarde",week:{st:"stop",stt:"Parada hace 35 m",stops:2,inc:3,lost:4.0,prodToday:280,g:[["run",60],["stop",18],["run",22]]},month:{stops:6,inc:9,lost:12.5},err30:[{e:"Soldadura defectuosa en eslabón",f:8,st:"open"},{e:"Electrodo desgastado",f:4,st:"done"}]},
+  {id:"cal",n:"Calibradora / Magnaflux",resp:"nerea",turno:"Mañana",week:{st:"op",stt:"Operativa todo el turno",stops:1,inc:1,lost:0.8,prodToday:540,g:[["run",100]]},month:{stops:3,inc:4,lost:4.0},err30:[{e:"Microfisura detectada",f:2,st:"done"}]},
+  {id:"gal",n:"Línea galvanizado",resp:"aitor",turno:"Mañana",week:{st:"maint",stt:"Mantenimiento prog.",stops:1,inc:2,lost:2.5,prodToday:430,g:[["run",70],["slow",12],["stop",18]]},month:{stops:5,inc:8,lost:9.5},err30:[{e:"Recubrimiento de zinc irregular",f:9,st:"prog"},{e:"Temperatura baño fuera de rango",f:5,st:"open"}]},
+  {id:"con",n:"Conformadora de eslabón",resp:"unai",turno:"Tarde",week:{st:"op",stt:"Operativa · 3 h 10 m",stops:1,inc:1,lost:0.7,prodToday:510,g:[["run",96],["slow",4]]},month:{stops:3,inc:3,lost:5.0},err30:[{e:"Desgaste de matriz de conformado",f:6,st:"done"}]},
+  {id:"gra",n:"Granalladora",resp:"mikel",turno:"Mañana",week:{st:"op",stt:"Operativa todo el turno",stops:0,inc:0,lost:0,prodToday:480,g:[["run",100]]},month:{stops:1,inc:1,lost:1.5},err30:[{e:"Obstrucción de granalla",f:1,st:"done"}]},
+  {id:"cor",n:"Corte de alambrón",resp:"gorka",turno:"Tarde",week:{st:"op",stt:"Operativa · 2 h 40 m",stops:1,inc:0,lost:0,prodToday:320,g:[["run",88],["slow",12]]},month:{stops:1,inc:1,lost:1.5},err30:[{e:"Atasco de alambrón en alimentador",f:4,st:"done"}]}
+];
+const HOME_KPIS={
+  week:[
+    {l:"Disponibilidad",v:"94,2",u:"%",d:"+1,1",dir:"up",north:true},
+    {l:"Paradas",v:"6",u:"",d:"−2",dir:"up"},
+    {l:"Tiempo perdido",v:"9,5",u:"h",d:"−3 h",dir:"up"},
+    {l:"T. medio resolución",v:"1,4",u:"d",d:"−0,3 d",dir:"up"},
+    {l:"Órdenes",v:"14",u:"",d:"+2",dir:"up"}
+  ],
+  month:[
+    {l:"Disponibilidad",v:"95,3",u:"%",d:"+0,8",dir:"up",north:true},
+    {l:"Paradas",v:"23",u:"",d:"−4",dir:"up"},
+    {l:"Tiempo perdido",v:"41",u:"h",d:"−7 h",dir:"up"},
+    {l:"T. medio resolución",v:"1,6",u:"d",d:"−0,1 d",dir:"up"},
+    {l:"Órdenes",v:"58",u:"",d:"+4",dir:"up"}
+  ]
+};
+const LINE={lost:[14,12.5,15,11,13,10.5,11,9.5],stops:[8,7,9,6,8,6,7,6],avg:12.5,labels:['S15','S16','S17','S18','S19','S20','S21','S22']};
+const ERRORS={
+  week:[{e:"Soldadura defectuosa en eslabón",m:"Soldadora L2",f:5,turno:"iker",st:"open"},{e:"Temperatura baño galvanizado fuera de rango",m:"Línea galvanizado",f:3,turno:"aitor",st:"prog"},{e:"Atasco de alambrón en alimentador",m:"Corte alambrón",f:2,turno:"gorka",st:"done"},{e:"Microfisura detectada en Magnaflux",m:"Calibradora",f:1,turno:"nerea",st:"open"}],
+  month:[{e:"Recubrimiento de zinc irregular",m:"Línea galvanizado",f:9,turno:"aitor",st:"prog"},{e:"Soldadura defectuosa en eslabón",m:"Soldadora L2",f:8,turno:"iker",st:"open"},{e:"Desgaste de matriz de conformado",m:"Conformadora",f:6,turno:"unai",st:"done"},{e:"Temperatura baño galvanizado fuera de rango",m:"Línea galvanizado",f:5,turno:"aitor",st:"open"},{e:"Atasco de alambrón en alimentador",m:"Corte alambrón",f:4,turno:"gorka",st:"done"},{e:"Microfisura detectada en Magnaflux",m:"Calibradora",f:2,turno:"nerea",st:"done"}]
+};
+const ERR_KPIS={week:[{l:"Abiertos",v:"4"},{l:"Resueltos",v:"7"},{l:"% resueltos",v:"82",u:"%"},{l:"Top recurrente",v:"Soldadura",txt:true}],month:[{l:"Abiertos",v:"7"},{l:"Resueltos",v:"27"},{l:"% resueltos",v:"86",u:"%"},{l:"Top recurrente",v:"Galvanizado",txt:true}]};
+const PROCS={
+  week:[{o:"OF-2046",p:"Cadena G80 Ø8 mm",q:"500 m",resp:"jon",st:"done"},{o:"OF-2047",p:"Cadena G100 Ø10 mm",q:"380 m",resp:"unai",st:"done"},{o:"OF-2048",p:"Eslingas G80 2 ramales",q:"60 ud",resp:"iker",st:"done"},{o:"OF-2049",p:"Cadena inox Ø6 mm",q:"220 m",resp:"jon",st:"done"},{o:"OF-2050",p:"Puntos de anclaje VRS",q:"320 ud",resp:"unai",st:"prog"},{o:"OF-2051",p:"Eslingas G100 4 ramales",q:"40 ud",resp:"iker",st:"prog"}],
+  month:[{o:"OF-2031→2050",p:"Cadena G80 / G100 (varios Ø)",q:"9.800 m",resp:"jon",st:"done"},{o:"OF-varias",p:"Cadena inox",q:"3.140 m",resp:"jon",st:"done"},{o:"OF-varias",p:"Eslingas G80 / G100",q:"186 ud",resp:"iker",st:"done"},{o:"OF-varias",p:"Puntos de anclaje",q:"640 ud",resp:"unai",st:"done"},{o:"OF-2051",p:"Eslingas G100 4 ramales",q:"40 ud",resp:"iker",st:"prog"}]
+};
+const PROC_KPIS={week:[{l:"Órdenes cerradas",v:"14"},{l:"Cadena producida",v:"3.180",u:"m"},{l:"Eslingas",v:"186",u:"ud"},{l:"A tiempo",v:"86",u:"%"}],month:[{l:"Órdenes cerradas",v:"58"},{l:"Cadena producida",v:"12.940",u:"m"},{l:"Eslingas",v:"420",u:"ud"},{l:"A tiempo",v:"89",u:"%"}]};
+const PROC_FAM={week:[["Cadena G80/G100",2480],["Cadena inox",420],["Eslingas",186],["Puntos anclaje",320]],month:[["Cadena G80/G100",9800],["Cadena inox",3140],["Eslingas",420],["Puntos anclaje",640]]};
+const MEETINGS=[
+  {id:"m1",d:"29",m:"May",t:"Reunión de producción semanal",lead:"jon",att:["jon","iker","unai","gorka","aitor"],sum:"Revisión de la parada de la soldadora L2 y planificación de órdenes de la semana 23.",acts:[{t:"Cambiar electrodos L2 por contador de ciclos",o:"iker",done:true},{t:"Adelantar OF-2051 (eslingas G100)",o:"unai",done:false}],transcript:[{p:"jon",tm:"08:05",x:"Buenos días. Empezamos por la L2, que es lo que nos ha tenido parados esta semana. Iker, cuéntanos."},{p:"iker",tm:"08:06",x:"La L2 ha dado soldadura defectuosa cinco veces. Lo localicé en los electrodos: se gastan antes que en la L1 porque va a más cadencia."},{p:"unai",tm:"08:08",x:"¿Y por qué no se cambiaban antes? ¿No hay pauta?"},{p:"iker",tm:"08:09",x:"La pauta es por turno, por horas fijas. Pero al ir más rápida, las horas no reflejan el desgaste real."},{p:"jon",tm:"08:11",x:"Entonces lo suyo es cambiar por número de ciclos, no por tiempo. ¿Lo puedes montar?"},{p:"iker",tm:"08:12",x:"Sí, el contador ya lo tiene la máquina. Lo dejo documentado para los dos turnos."},{p:"jon",tm:"08:17",x:"Vale. Y para la semana 23 adelantamos la OF-2051 de eslingas G100, que corre prisa. Unai la coordinas."}]},
+  {id:"m2",d:"27",m:"May",t:"Comité de calidad",lead:"nerea",att:["nerea","javier","aitor","isaac"],sum:"Análisis del recubrimiento irregular en galvanizado y revisión de no conformidades del mes.",acts:[{t:"Control del baño de decapado 2×/semana",o:"nerea",done:true},{t:"Auditar proveedor de alambrón",o:"javier",done:false}],transcript:[{p:"nerea",tm:"10:00",x:"El tema gordo es el recubrimiento de zinc irregular. Hemos rechazado tres lotes por zonas mates y grumos."},{p:"aitor",tm:"10:03",x:"Lo hemos rastreado al baño de decapado. Estaba agotado y no limpiaba bien antes de galvanizar."},{p:"isaac",tm:"10:05",x:"¿Eso se controlaba con qué frecuencia?"},{p:"aitor",tm:"10:06",x:"No había control sistemático. Proponemos medir concentración dos veces por semana y registrarlo."},{p:"javier",tm:"10:09",x:"Bien. Y el alambrón de un proveedor viene irregular. Quiero auditarlo antes de seguir comprando."}]},
+  {id:"m3",d:"15",m:"May",t:"Revisión mensual de dirección",lead:"javier",att:["javier","isaac","jon"],sum:"Cierre de indicadores de abril, objetivos de mayo y seguimiento de inversión en mantenimiento.",acts:[{t:"Definir objetivo de disponibilidad para Q3",o:"javier",done:false},{t:"Presupuestar repuestos críticos",o:"jon",done:true}],transcript:[{p:"javier",tm:"09:00",x:"Cerramos abril con 95,3% de disponibilidad. Mejor que marzo, pero las paradas de soldadura siguen siendo el grueso."},{p:"isaac",tm:"09:04",x:"¿El panel nos está ayudando a verlo antes?"},{p:"javier",tm:"09:05",x:"Sí, ahora vemos la recurrencia por máquina. Antes nos enterábamos en la reunión, tarde."},{p:"jon",tm:"09:08",x:"Para Q3 deberíamos fijar un objetivo de disponibilidad y presupuestar repuestos críticos."}]}
+];
+const PENDING=[{t:"Adelantar OF-2051 (eslingas G100)",o:"unai",done:false},{t:"Auditar proveedor de alambrón",o:"javier",done:false},{t:"Definir objetivo de disponibilidad Q3",o:"javier",done:false},{t:"Control baño de decapado 2×/sem",o:"nerea",done:true},{t:"Presupuestar repuestos críticos",o:"jon",done:true}];
+const KB=[
+  {q:"Recubrimiento de zinc irregular tras galvanizado",machine:"gal",week:true,p:"Lotes con zonas mates y grumos de zinc, fallando inspección visual.",c:"Decapado insuficiente: el baño de ácido estaba agotado y no limpiaba la superficie antes de galvanizar.",s:"Control de concentración del baño 2×/semana con registro y renovación al alcanzar umbral.",who:"nerea",date:"28 May 2026"},
+  {q:"Soldadura defectuosa recurrente en L2",machine:"l2",week:true,p:"Eslabones con falta de penetración, rechazados en ensayo de carga.",c:"Electrodos desgastados antes en L2 por mayor cadencia; el cambio era por horas fijas, no por desgaste real.",s:"Cambio de electrodos por contador de ciclos. Pauta documentada para ambos turnos.",who:"iker",date:"25 May 2026"},
+  {q:"Atasco repetido de alambrón en el alimentador",machine:"cor",week:false,p:"Paradas frecuentes por atascos del rollo al entrar en la cizalla.",c:"Rollos de un proveedor con bobinado irregular; el enderezador no compensaba.",s:"Ajustado el enderezador y añadida verificación de bobinado en recepción de material.",who:"gorka",date:"24 May 2026"},
+  {q:"Microfisuras en ensayo Magnaflux en lote G100",machine:"cal",week:false,p:"Microfisuras en el ensayo de un lote concreto de eslingas.",c:"Tratamiento térmico con temperatura baja por termopar descalibrado.",s:"Recalibrado el termopar del horno y verificación mensual añadida al plan.",who:"nerea",date:"19 May 2026"},
+  {q:"Desgaste prematuro de matriz de conformado",machine:"con",week:false,p:"Eslabones fuera de cota por desgaste de la matriz antes de lo previsto.",c:"Lote de acero con dureza superior a la habitual aceleró el desgaste.",s:"Verificación de dureza en recepción y registro de vida útil de matriz por lote.",who:"unai",date:"12 May 2026"}
+];
+const ST={op:["op","Operativa"],stop:["stop","Parada"],maint:["maint","Mantenim."],open:["stop","Abierto"],prog:["maint","En curso"],done:["op","Resuelto"]};
+function statusLabel(st){const s=ST[st];return `<span class="st"><span class="dot ${s[0]}"></span>${s[1]}</span>`;}
+function comma(n){return String(n).replace('.',',');}
+
+/* ===== estado ===== */
+let period='week',face='dash',kbFilter='';
+function setFace(f){face=f;document.getElementById('ta-dash').classList.toggle('active',f==='dash');document.getElementById('ta-app').classList.toggle('active',f==='app');document.getElementById('dash-main').classList.toggle('hide',f!=='dash');document.getElementById('app-main').classList.toggle('hide',f!=='app');document.getElementById('period-ctrl').style.visibility=f==='dash'?'visible':'hidden';window.scrollTo({top:0});}
+function setPeriod(p){period=p;document.getElementById('pw').classList.toggle('active',p==='week');document.getElementById('pm').classList.toggle('active',p==='month');document.getElementById('td-main').textContent=p==='week'?'25–31 May 2026':'Mayo 2026';const w=p==='week';document.querySelectorAll('#maq-period,#maq-lost-sub,#proc-fam-sub').forEach(e=>e.textContent=w?'esta semana':'este mes');renderAll();}
+
+/* ===== KPIs ===== */
+function kpiStrip(el,data){el.innerHTML=data.map(k=>`
+  <div class="kpi ${k.north?'north':''}">
+    <div class="k-label">${k.l}</div>
+    <div class="k-val ${k.txt?'txt':''} num">${k.v}${k.u?`<small> ${k.u}</small>`:''}</div>
+    ${k.d?`<div class="k-delta"><span class="d ${k.dir}">${k.dir==='up'?'▲':k.dir==='down'?'▼':'■'} ${k.d}</span><span>vs media</span></div>`:''}
+  </div>`).join('');}
+
+/* ===== line chart ===== */
+function lineChart(el){
+  const W=620,H=190,pl=34,pr=14,pt=14,pb=26,n=LINE.lost.length,iw=W-pl-pr,ih=H-pt-pb,maxY=16;
+  const x=i=>pl+iw*i/(n-1),y=v=>pt+ih*(1-v/maxY);
+  const pts=a=>a.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  let grid='';for(let v=0;v<=maxY;v+=4)grid+=`<line x1="${pl}" y1="${y(v)}" x2="${W-pr}" y2="${y(v)}" stroke="#f0f0f1"/><text x="${pl-8}" y="${y(v)+3}" text-anchor="end" font-size="9.5" fill="#a1a1aa">${v}</text>`;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="font-family:inherit">
+    ${grid}
+    <line x1="${pl}" y1="${y(LINE.avg)}" x2="${W-pr}" y2="${y(LINE.avg)}" stroke="#a1a1aa" stroke-width="1.3" stroke-dasharray="5 4"/>
+    <polyline fill="none" stroke="#d4d4d8" stroke-width="2" points="${pts(LINE.stops)}"/>
+    ${LINE.stops.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.6" fill="#a1a1aa"/>`).join('')}
+    <polyline fill="none" stroke="#5a9e0a" stroke-width="2.4" points="${pts(LINE.lost)}"/>
+    ${LINE.lost.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="#5a9e0a"/>`).join('')}
+    ${LINE.labels.map((l,i)=>`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="#a1a1aa">${l}</text>`).join('')}
+  </svg>`;
+}
+function hbars(el,data,fmt,colorFn){const max=Math.max(...data.map(d=>d[1]));el.innerHTML=data.map(d=>`<div class="hbar"><div class="hl">${d[0]}</div><div class="ht"><i style="width:${(d[1]/max*100).toFixed(1)}%${colorFn?`;background:${colorFn(d)}`:''}"></i></div><div class="hv">${fmt?fmt(d[1]):d[1]}</div></div>`).join('');}
+
+/* ===== render ===== */
+function renderAll(){renderHome();renderMaquinas();renderErrores();renderProcesos();renderMeetings();renderKBWeek();renderKBMachine();}
+
+function renderHome(){
+  kpiStrip(document.getElementById('kpi-home'),HOME_KPIS[period]);
+  lineChart(document.getElementById('line-chart'));
+  document.getElementById('machine-status').innerHTML=MACHINES.map(m=>`
+    <div class="srow" onclick="openMachine('${m.id}')">
+      <span class="dot ${m.week.st}"></span>
+      <span class="sname">${m.n}</span>
+      <span class="sstate">${m.week.stt}</span>
+    </div>`).join('');
+  const machO=MACHINES.filter(m=>m.week.st==='op').length;
+  const areas=[
+    {v:'maquinas',ic:'machines',t:'Máquinas',m:`<b>${machO}/7</b> operativas`},
+    {v:'errores',ic:'errors',t:'Errores',m:`<b>${ERR_KPIS[period][0].v}</b> abiertos`},
+    {v:'procesos',ic:'proc',t:'Procesos',m:`<b>${PROC_KPIS[period][0].v}</b> órdenes`},
+    {v:'reuniones',ic:'meet',t:'Reuniones',m:`<b>${PENDING.filter(a=>!a.done).length}</b> acc. pend.`},
+    {v:'conocimiento',ic:'kb',t:'Conocimiento',m:`<b>${KB.length}</b> soluciones`}
+  ];
+  document.getElementById('areas').innerHTML=areas.map(a=>`
+    <div class="area" onclick="go('${a.v}')">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span class="ai">${icon(a.ic)}</span><span class="chev">›</span></div>
+      <div class="at">${a.t}</div>
+      <div class="am">${a.m}</div>
+    </div>`).join('');
+}
+
+function renderMaquinas(){
+  const disp=period==='week'?'94,2':'95,3',stop=period==='week'?4:3;
+  document.getElementById('maq-disp').textContent=disp+'%';
+  document.getElementById('maq-disp-bar').style.width=disp.replace(',','.')+'%';
+  document.getElementById('mt-run').textContent=Math.round(parseFloat(disp.replace(',','.')))+'%';
+  document.getElementById('mt-stop').textContent=stop+'%';
+  document.getElementById('mt-maint').textContent=(period==='week'?2:2)+'%';
+  hbars(document.getElementById('maq-bars'),MACHINES.map(m=>[m.n,m[period].lost]).filter(d=>d[1]>0).sort((a,b)=>b[1]-a[1]),v=>comma(v.toFixed(1))+' h');
+  document.getElementById('maq-body').innerHTML=MACHINES.map(m=>`
+    <tr class="click" onclick="openMachine('${m.id}')">
+      <td style="font-weight:500">${m.n}</td><td>${statusLabel(m.week.st)}</td>
+      <td class="r num">${m[period].stops}</td><td class="r num">${m[period].inc}</td><td class="r num">${comma(m[period].lost.toFixed(1))} h</td>
+      <td>${person(m.resp)}</td></tr>`).join('');
+}
+
+function openMachine(id){
+  const m=MACHINES.find(x=>x.id===id);document.getElementById('md-crumb').textContent=m.n;
+  const kbm=KB.filter(k=>k.machine===id);
+  document.getElementById('maquina-detail').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px"><h1 class="page">${m.n}</h1>${statusLabel(m.week.st)}</div>
+    <p class="lead">Responsable: ${person(m.resp)} · turno ${m.turno.toLowerCase()}</p>
+    <div class="kpi-strip k4 mb18">
+      <div class="kpi"><div class="k-label">Estado ahora</div><div class="k-val txt">${ST[m.week.st][1]}</div><div class="k-delta"><span>${m.week.stt}</span></div></div>
+      <div class="kpi"><div class="k-label">Paradas (${period==='week'?'sem':'mes'})</div><div class="k-val num">${m[period].stops}</div></div>
+      <div class="kpi"><div class="k-label">Tiempo perdido</div><div class="k-val num">${comma(m[period].lost.toFixed(1))}<small> h</small></div></div>
+      <div class="kpi"><div class="k-label">Producción hoy</div><div class="k-val num">${m.week.prodToday}<small> m</small></div></div>
+    </div>
+    <div class="grid g-2 mb18">
+      <div class="panel"><div class="p-head"><h3>Errores últimos 30 días</h3><span class="meta">por frecuencia</span></div><div class="hbars" id="md-err"></div></div>
+      <div class="panel"><div class="p-head"><h3>Actividad de hoy · 8 h</h3></div>
+        <div style="padding:18px"><div class="gantt" style="height:26px">${m.week.g.map(s=>`<i class="g-${s[0]}" style="width:${s[1]}%"></i>`).join('')}</div>
+        <div class="legend" style="padding:14px 0 0"><span><i style="background:var(--accent)"></i>Produciendo</span><span><i style="background:#d4d4d8"></i>Micro-parada</span><span><i style="background:var(--red)"></i>Parada</span></div></div></div>
+    </div>
+    <div class="panel"><div class="p-head"><h3>Conocimiento de esta máquina</h3><span class="meta">${kbm.length} soluciones documentadas</span></div>
+      <div>${kbm.length?kbm.map(kbHTML).join(''):'<div style="padding:24px;color:var(--muted)">Sin soluciones registradas todavía.</div>'}</div></div>`;
+  hbars(document.getElementById('md-err'),m.err30.map(e=>[e.e,e.f]),v=>v+'×',d=>'var(--faint)');
+  showView('maquina');
+}
+
+function renderErrores(){
+  kpiStrip(document.getElementById('err-kpis'),ERR_KPIS[period]);
+  const E=ERRORS[period],max=Math.max(...E.map(e=>e.f));
+  hbars(document.getElementById('err-bars'),E.slice(0,5).map(e=>[e.e,e.f,e.st]),v=>v+'×',d=>d[2]==='open'?'var(--red)':d[2]==='prog'?'var(--amber)':'var(--accent)');
+  document.getElementById('err-body').innerHTML=E.map(e=>`
+    <tr><td style="font-weight:500">${e.e}</td><td>${e.m}</td>
+    <td><span class="freq"><span class="ft"><i style="width:${(e.f/max*100).toFixed(0)}%"></i></span>${e.f}×</span></td>
+    <td>${person(e.turno)}</td><td>${statusLabel(e.st)}</td></tr>`).join('');
+  document.getElementById('err-count').textContent=E.length+' incidencias';
+}
+
+function renderProcesos(){
+  kpiStrip(document.getElementById('proc-kpis'),PROC_KPIS[period]);
+  hbars(document.getElementById('proc-bars'),PROC_FAM[period].map(d=>[d[0],d[1]]),v=>v>=1000?comma((v/1000).toFixed(1))+'k':v,d=>'var(--accent)');
+  document.getElementById('proc-body').innerHTML=PROCS[period].map(p=>`
+    <tr><td style="font-weight:600" class="num">${p.o}</td><td>${p.p}</td><td class="r num">${p.q}</td><td>${person(p.resp)}</td><td>${statusLabel(p.st==='done'?'done':'prog')}</td></tr>`).join('');
+  document.getElementById('proc-count').textContent=PROCS[period].length+' órdenes';
+}
+
+function renderMeetings(){
+  document.getElementById('meet-list').innerHTML=MEETINGS.map(m=>`
+    <div class="meet" onclick="openMeeting('${m.id}')">
+      <div class="mdate"><div class="d num">${m.d}</div><div class="m">${m.m}</div></div>
+      <div class="mb"><h4>${m.t}</h4>
+        <div class="mw">Lleva ${first(m.lead)} · <span class="avstack">${m.att.slice(0,5).map(av).join('')}</span> ${m.att.length} asistentes</div>
+        <div class="ms">${m.sum}</div></div>
+      <span class="go">›</span></div>`).join('');
+  document.getElementById('meet-count').textContent=MEETINGS.length+' registradas';
+  document.getElementById('pending-list').innerHTML=PENDING.map(a=>`<div class="act"><span class="chk ${a.done?'done':''}"></span>${a.t}<span class="who">${first(a.o)}</span></div>`).join('');
+}
+function openMeeting(id){
+  const m=MEETINGS.find(x=>x.id===id);document.getElementById('rd-crumb').textContent=m.t;
+  document.getElementById('reunion-detail').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px"><h1 class="page">${m.t}</h1><span style="font-size:12.5px;color:var(--muted)">${m.d} ${m.m} 2026</span></div>
+    <p class="lead">Lleva la reunión ${person(m.lead)}</p>
+    <div class="grid g-2-1">
+      <div class="panel"><div class="p-head"><h3>Acta / transcripción completa</h3><span class="meta">${m.transcript.length} intervenciones</span></div>
+        <div style="padding:4px 18px 14px">${m.transcript.map(t=>`<div class="tline"><div>${av(t.p)}</div><div class="tw"><div class="nm">${PEOPLE[t.p].n}<small>${t.tm}</small></div><p>${t.x}</p></div></div>`).join('')}</div></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="panel" style="height:fit-content"><div class="p-head"><h3>Participantes</h3><span class="meta">${m.att.length}</span></div>
+          <div style="padding:14px 18px;display:flex;flex-wrap:wrap;gap:8px">${m.att.map(p=>`<span class="att">${av(p)}${PEOPLE[p].n}</span>`).join('')}</div></div>
+        <div class="panel" style="height:fit-content"><div class="p-head"><h3>Acciones</h3><span class="meta">${m.acts.length}</span></div>
+          <div class="acts">${m.acts.map(a=>`<div class="act"><span class="chk ${a.done?'done':''}"></span>${a.t}<span class="who">${first(a.o)}</span></div>`).join('')}</div></div>
+      </div></div>`;
+  showView('reunion');
+}
+
+function kbHTML(k){return `<div class="kb">
+  <div class="kq">${statusLabel('done')}<span>${k.q}</span></div>
+  <div class="kb-flow">
+    <div class="step problem"><div class="h"><span class="pip"></span>Problema</div><p>${k.p}</p></div>
+    <div class="step cause"><div class="h"><span class="pip"></span>Causa raíz</div><p>${k.c}</p></div>
+    <div class="step sol"><div class="h"><span class="pip"></span>Solución</div><p>${k.s}</p></div>
+  </div>
+  <div class="kb-meta"><span>${MACHINES.find(m=>m.id===k.machine)?.n||''}</span><span>${person(k.who)}</span><span>${k.date}</span></div>
+</div>`;}
+function renderKBWeek(){const list=KB.filter(k=>k.week).filter(k=>(k.q+k.p+k.c+k.s).toLowerCase().includes(kbFilter.toLowerCase()));document.getElementById('kb-list').innerHTML=list.length?list.map(kbHTML).join(''):'<div style="padding:30px;color:var(--muted)">Sin resultados</div>';}
+function filterKB(v){kbFilter=v;renderKBWeek();}
+function renderKBMachine(){document.getElementById('kb-machine-pane').innerHTML=MACHINES.map(m=>{const items=KB.filter(k=>k.machine===m.id);return `<details ${m.id==='gal'?'open':''}><summary class="mkb-head">${icon('machines')}<b style="font-weight:600">${m.n}</b><span class="cnt">${items.length} solución(es)</span></summary><div>${items.length?items.map(kbHTML).join(''):'<div style="padding:18px;color:var(--muted)">Sin registros.</div>'}</div></details>`;}).join('');}
+function setKBTab(t){document.getElementById('kbtab-week').classList.toggle('active',t==='week');document.getElementById('kbtab-machine').classList.toggle('active',t==='machine');document.getElementById('kb-week-pane').classList.toggle('hide',t!=='week');document.getElementById('kb-machine-pane').classList.toggle('hide',t!=='machine');}
+
+/* ===== nav ===== */
+const VIEWS=['home','maquinas','maquina','errores','procesos','reuniones','reunion','conocimiento'];
+function showView(v){VIEWS.forEach(x=>document.getElementById('view-'+x).classList.toggle('hide',x!==v));window.scrollTo({top:0,behavior:'smooth'});}
+function go(v){showView(v);}
+
+renderAll();showView('home');setFace('dash');
+</script>
+</body>
+</html>
