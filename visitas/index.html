@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Katiak · Registro de visitas — demostración</title>
+<style>
+  :root{
+    --ink:#18181b; --muted:#71717a; --faint:#a1a1aa;
+    --border:#eaeaea; --bg:#fafafa; --surface:#fff; --accent:#61a508;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,system-ui,"SF Pro Text",Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; min-height:100%;
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:1em;
+    padding:18px 24px; border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  header img{height:30px; width:auto}
+  header .tag{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 20px; gap:18px}
+  .title{font-size:clamp(20px,3.2vw,30px); font-weight:680; letter-spacing:-.02em; margin:0; text-align:center}
+  .sub{font-size:clamp(14px,1.8vw,17px); color:var(--muted); margin:0; text-align:center; max-width:54ch; line-height:1.45}
+  .player{
+    width:min(94vw, 1100px); background:#000; border-radius:16px; overflow:hidden;
+    box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 40px rgba(0,0,0,.10); border:1px solid var(--border);
+  }
+  video{display:block; width:100%; height:auto; max-height:74vh; background:#000}
+  footer{padding:16px 24px 26px; text-align:center; color:var(--faint); font-size:12.5px; line-height:1.5}
+  footer .demo{color:var(--accent); font-weight:600}
+</style>
+</head>
+<body>
+  <header>
+    <img src="../katiak-logo.png" alt="Katiak">
+    <span class="tag">Demostración del sistema</span>
+  </header>
+  <main>
+    <h1 class="title">Registro de visitas</h1>
+    <p class="sub">Entrada y Salida con dos botones; la duración de la visita se calcula sola. La demostración más sencilla del método de captura.</p>
+    <div class="player">
+      <video controls playsinline preload="auto" poster="../videos/visitas-poster.jpg">
+        <source src="../videos/visitas.mp4" type="video/mp4">
+        Tu navegador no puede reproducir el vídeo. <a href="../videos/visitas.mp4">Descárgalo aquí</a>.
+      </video>
+    </div>
+  </main>
+  <footer>
+    Katiak · Panel de planta — <span class="demo">datos de demostración</span>. Grabación de la app real en desarrollo.
+  </footer>
+</body>
+</html>
